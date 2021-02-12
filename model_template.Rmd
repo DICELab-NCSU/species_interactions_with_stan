@@ -1,0 +1,154 @@
+---
+title: "[Brief, descriptive title]"
+subtitle: "([parameterization notes])"
+author: "[Your Name Here]"
+date: "`r format(Sys.time(), '%Y-%b-%d')`"
+output: github_document
+references:
+- id: extraordinaire2020
+  title: An earth-shattering new model for species interactions
+  author:
+  - family: Extraordinaire
+    given: Biomath
+  container-title: Journal of Awesome Results
+  volume: 1
+  type: article-journal
+  issued:
+    year: 2020
+- id: critic2021
+  title: Hot takes on the Extraordinaire interaction model
+  author:
+  - family: Critic
+    given: Harshest
+  container-title: Journal of Subtweets
+  volume: 15
+  pages: 1139-1151
+  type: article-journal
+  issued:
+    year: 2021
+nocite: | 
+  @critic2021
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The model
+
+[//]: # (FILL in this table with descriptors about the model)
+
++--------------------------+---------------------------------------------------------+
+| **Number of species**    | >=1                                                     |
++--------------------------+---------------------------------------------------------+
+| **Time**                 | discrete or continuous                                  |
++--------------------------+---------------------------------------------------------+
+| **Interaction type(s)**  | competition                                             |
++--------------------------+---------------------------------------------------------+
+| **Difference equation**  | $n_{t+1} = rn_{t}$                                      |
++--------------------------+---------------------------------------------------------+
+| **Parameter meaning**    | $n_{t}$: number of individuals at time $t$              |
+|                          |                                                         |
+|                          | $r$: per-capita intrinsic rate of increase              |
++--------------------------+---------------------------------------------------------+
+| **Equilibrium**          | $n^*=0$                                                 |
++--------------------------+---------------------------------------------------------+
+| **Original publication** | @extraordinaire2020                                     |
++--------------------------+---------------------------------------------------------+
+
+## Bayesian hierarchical model structure
+
+Describe the hierarchical model here, focusing on the assumed structure & units of the data. In short, what is the high-level view of the experiment or observation study? Be sure to highlight when the data-generating process differs from the classic difference equation in the table above. Please also describe how the observation process is modeled, if relevant. 
+
+$$
+\begin{aligned}
+e &= mc^2 \\
+c &\sim \mathrm{Normal}\left(299792458, \sigma\right) \\
+\end{aligned}
+$$
+
+(If this equation looks jumbled, you may need to download the source .Rmd or use a [browser add-on](https://chrome.google.com/webstore/detail/mathjax-plugin-for-github/ioemnmodlmafdkllaclgeombjnmnbima) to render it.)
+
+## Stan code
+
+```{r message=FALSE, warning=FALSE}
+## prepare Rmarkdown to input model
+library(cmdstanr)  # remotes::install_github("stan-dev/cmdstanr")
+register_knitr_engine()
+```
+
+```{stan, output.var="temp"}
+// [MODEL TITLE HERE]
+// [YOUR NAME HERE]
+
+// define the structure & types of data to which the model is fit
+data {
+
+}
+
+// define the parameters to be fit
+parameters {
+
+}
+
+transformed parameters {
+
+}
+
+model {
+
+}
+
+```
+
+## Example data & fitting
+
+```{r example, message=FALSE, warning=FALSE}
+library(posterior)
+library(ggplot2)
+
+## set 'true' parameter values
+
+
+## generate synthetic data
+set.seed(1234)
+
+
+dat <- list()
+
+## add priors
+
+
+## compile the model from an external .stan file
+mod <- cmdstan_model("mod.stan")
+
+## fit the model (sample the posterior)
+ps <- mod$sample(data = dat, refresh = 500)
+pdat <- as_draws_df(ps$draws(variables = c("par1", "par2")))
+
+## examine posterior distribution vs. true values
+c(lambda = lambda, alpha = alpha)  # true values
+summarize_draws(ps$draws(variables = c("lambda", "alpha")))  # posterior summary
+
+ggplot()+
+  geom_hex()+
+  geom_point(aes(color = "true value"), shape = 3, stroke = 2, size = 4)+
+  scale_color_manual(name = "", values = "black")+
+  scale_fill_distiller(name = "posterior density", palette = "RdPu",
+                       direction = 1)+
+  theme_minimal(base_size = 20)
+```
+
+## Variations
+
+-   Suggestions for tuning the model for similar designs
+
+## Session info
+```{r}
+sessionInfo()
+```
+
+## References
+
+::: {#refs}
+:::
