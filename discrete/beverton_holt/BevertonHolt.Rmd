@@ -157,7 +157,10 @@ bh <- cmdstan_model("bh.stan")
 ps <- bh$sample(data = dat, refresh = 500)
 pdat <- as_draws_df(ps$draws(variables = c("lambda", "alpha")))
 
-## plot posterior
+## examine posterior distribution vs. true values
+c(lambda = lambda, alpha = alpha)  # true values
+summarize_draws(ps$draws(variables = c("lambda", "alpha")))  # posterior summary
+
 ggplot(data = NULL, aes(x = alpha, y = lambda))+
   geom_hex(data = pdat)+
   geom_point(aes(color = "true value"), shape = 3, stroke = 2, size = 4)+

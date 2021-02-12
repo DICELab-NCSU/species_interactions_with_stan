@@ -165,23 +165,40 @@ ps <- bh$sample(data = dat, refresh = 500)
     ## Chain 3 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
     ## Chain 3 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
     ## Chain 3 Iteration: 2000 / 2000 [100%]  (Sampling) 
-    ## Chain 3 finished in 1.0 seconds.
+    ## Chain 3 finished in 0.9 seconds.
     ## Chain 4 Iteration:    1 / 2000 [  0%]  (Warmup) 
     ## Chain 4 Iteration:  500 / 2000 [ 25%]  (Warmup) 
     ## Chain 4 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
     ## Chain 4 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
     ## Chain 4 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
     ## Chain 4 Iteration: 2000 / 2000 [100%]  (Sampling) 
-    ## Chain 4 finished in 0.9 seconds.
+    ## Chain 4 finished in 1.0 seconds.
     ## 
     ## All 4 chains finished successfully.
     ## Mean chain execution time: 1.0 seconds.
-    ## Total execution time: 4.3 seconds.
+    ## Total execution time: 4.2 seconds.
 
 ``` r
 pdat <- as_draws_df(ps$draws(variables = c("lambda", "alpha")))
 
-## plot posterior
+## examine posterior distribution vs. true values
+c(lambda = lambda, alpha = alpha)  # true values
+```
+
+    ## lambda  alpha 
+    ## 200.00   1.25
+
+``` r
+summarize_draws(ps$draws(variables = c("lambda", "alpha")))  # posterior summary
+```
+
+    ## # A tibble: 2 x 10
+    ##   variable   mean median      sd     mad     q5    q95  rhat ess_bulk ess_tail
+    ##   <chr>     <dbl>  <dbl>   <dbl>   <dbl>  <dbl>  <dbl> <dbl>    <dbl>    <dbl>
+    ## 1 lambda   201.   201.   11.2    10.8    182.   220.    1.00     771.     692.
+    ## 2 alpha      1.24   1.24  0.0810  0.0782   1.11   1.38  1.00     771.     692.
+
+``` r
 ggplot(data = NULL, aes(x = alpha, y = lambda))+
   geom_hex(data = pdat)+
   geom_point(aes(color = "true value"), shape = 3, stroke = 2, size = 4)+
@@ -229,15 +246,16 @@ sessionInfo()
     ##  [1] highr_0.8          RColorBrewer_1.1-2 compiler_4.0.3     pillar_1.4.7      
     ##  [5] tools_4.0.3        digest_0.6.27      lattice_0.20-41    jsonlite_1.7.2    
     ##  [9] evaluate_0.14      lifecycle_0.2.0    tibble_3.0.6       gtable_0.3.0      
-    ## [13] checkmate_2.0.0    pkgconfig_2.0.3    rlang_0.4.10       DBI_1.1.1         
-    ## [17] yaml_2.2.1         hexbin_1.28.2      xfun_0.21          withr_2.4.1       
-    ## [21] stringr_1.4.0      dplyr_1.0.4        knitr_1.31         generics_0.1.0    
-    ## [25] vctrs_0.3.6        grid_4.0.3         tidyselect_1.1.0   data.table_1.13.6 
-    ## [29] glue_1.4.2         R6_2.5.0           processx_3.4.5     rmarkdown_2.6     
-    ## [33] farver_2.0.3       purrr_0.3.4        magrittr_2.0.1     backports_1.2.1   
-    ## [37] scales_1.1.1       ps_1.5.0           htmltools_0.5.1.1  ellipsis_0.3.1    
-    ## [41] assertthat_0.2.1   abind_1.4-5        colorspace_2.0-0   labeling_0.4.2    
-    ## [45] stringi_1.5.3      munsell_0.5.0      crayon_1.4.1
+    ## [13] checkmate_2.0.0    pkgconfig_2.0.3    rlang_0.4.10       cli_2.3.0         
+    ## [17] DBI_1.1.1          yaml_2.2.1         hexbin_1.28.2      xfun_0.21         
+    ## [21] withr_2.4.1        stringr_1.4.0      dplyr_1.0.4        knitr_1.31        
+    ## [25] generics_0.1.0     vctrs_0.3.6        grid_4.0.3         tidyselect_1.1.0  
+    ## [29] data.table_1.13.6  glue_1.4.2         R6_2.5.0           processx_3.4.5    
+    ## [33] fansi_0.4.2        rmarkdown_2.6      farver_2.0.3       purrr_0.3.4       
+    ## [37] magrittr_2.0.1     backports_1.2.1    scales_1.1.1       ps_1.5.0          
+    ## [41] htmltools_0.5.1.1  ellipsis_0.3.1     assertthat_0.2.1   abind_1.4-5       
+    ## [45] colorspace_2.0-0   labeling_0.4.2     utf8_1.1.4         stringi_1.5.3     
+    ## [49] munsell_0.5.0      crayon_1.4.1
 
 ## References
 
