@@ -2,7 +2,8 @@
 title: "Competitive Beverton-Holt"
 subtitle: "(competition coefficient parameterization)"
 author: "W.K. Petry"
-output: html_document
+date: "`r format(Sys.time(), '%Y-%b-%d')`"
+output: rmarkdown::github_document
 references:
 - id: beverton1957
   title: On the Dynamics of Exploited Fish Populations
@@ -46,7 +47,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 +--------------------------+---------------------------------------------------------+
 | **Number of species**    | 1                                                       |
-+==========================+=========================================================+
++--------------------------+---------------------------------------------------------+
 | **Time**                 | discrete                                                |
 +--------------------------+---------------------------------------------------------+
 | **Interaction type(s)**  | competition                                             |
@@ -171,6 +172,11 @@ ggplot(data = NULL, aes(x = alpha, y = lambda))+
 -   Set heavier-tailed prior on $\alpha$ (e.g., Student's t)
 
 -   Set more flexible prior on $\lambda$ (e.g., log-normal)
+
+## Session info
+```{r}
+sessionInfo()
+```
 
 ## References
 
