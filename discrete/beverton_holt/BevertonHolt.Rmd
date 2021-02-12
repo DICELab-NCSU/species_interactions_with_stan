@@ -1,0 +1,178 @@
+---
+title: "Competitive Beverton-Holt"
+subtitle: "(competition coefficient parameterization)"
+author: "W.K. Petry"
+output: html_document
+references:
+- id: beverton1957
+  title: On the Dynamics of Exploited Fish Populations
+  author:
+  - family: Beverton
+    given: R.J.
+  - family: Holt
+    given: S.J.
+  container-title: Fishery Investigations Series II
+  volume: XIX
+  publisher: Ministry of Agriculture, Fisheries and Food
+  type: book
+  issued:
+    year: 1957
+- id: cushing2004jdiffeqappl
+  title: Some discrete competition models and the competitive exclusion principle
+  author:
+  - family: Cushing
+    given: J.M.
+  - family: Leverge
+    given: S.
+  - family: Chitnis
+    given: N.
+  - family: Henson
+    given: S.M.
+  container-title: J Diff Eq Appl
+  volume: 10
+  pages: 1139-1151
+  type: article-journal
+  issued:
+    year: 2004
+nocite: | 
+  @cushing2004jdiffeqappl
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The model
+
++--------------------------+---------------------------------------------------------+
+| **Number of species**    | 1                                                       |
++==========================+=========================================================+
+| **Time**                 | discrete                                                |
++--------------------------+---------------------------------------------------------+
+| **Interaction type(s)**  | competition                                             |
++--------------------------+---------------------------------------------------------+
+| **Difference equation**  | $n_{t+1} = n_{t}\lambda / (1+\alpha n_{t})$             |
++--------------------------+---------------------------------------------------------+
+| **Parameter meaning**    | $n_{t}$: number of individuals at time $t$              |
+|                          |                                                         |
+|                          | $\lambda$: per-capita intrinsic rate of increase        |
+|                          |                                                         |
+|                          | $\alpha$: (intra-specific) competition coefficient      |
++--------------------------+---------------------------------------------------------+
+| **Equilibrium**          | $n^*=(\lambda-1)/\alpha$                                |
++--------------------------+---------------------------------------------------------+
+| **Original publication** | @beverton1957, using carrying capacity parameterization |
++--------------------------+---------------------------------------------------------+
+
+## Bayesian hierarchical model structure
+
+This framing of the model imagines that you have individual-level data on focal individuals. that includes the number of neighboring competitors ($n_t$) and the number of offspring produced ($n_{\mathrm{off}, t}$). The observation of the latent individual fecundities ($f_t$) is a Poisson process. Domain expertise is used to set the priors on $\lambda$ and $\alpha$.
+
+$$
+\begin{aligned}
+n_{\mathrm{off}, t} &\sim \mathrm{Poisson}\left(f_{t}\right) \\
+f_t &= \frac{\lambda}{1+\alpha n_{t}} \\
+\lambda &\sim \mathrm{Normal}\left(\mu_{\lambda},\sigma_{\lambda}\right) \\
+\alpha &\sim \mathrm{Normal}\left(\mu_{\alpha},\sigma_{\alpha}\right).
+\end{aligned}
+$$
+
+## Stan code
+
+```{r message=FALSE, warning=FALSE}
+## prepare Rmarkdown to input model
+library(cmdstanr)  # remotes::install_github("stan-dev/cmdstanr")
+register_knitr_engine()
+```
+
+```{stan, output.var="temp"}
+// Beverton-Holt competition model
+// W.K. Petry
+
+// define the structure & types of data to which the model is fit
+data {
+  int<lower=0> N;                 // number of focal individuals (data rows)
+  int<lower=0> offspring[N];      // observed offspring production by focals
+  int<lower=0> bkgd_dens[N];      // local densities around focal individuals
+  // accept priors from user
+  real<lower=0> lambda_mean;      // prior mean for lambda
+  real<lower=0> lambda_sd;        // prior standard deviation for lambda
+  real<lower=0> alpha_mean;       // prior mean for competition coefficient
+  real<lower=0> alpha_sd;         // prior standard deviation for competition coefficent
+}
+
+// define the parameters to be fit
+parameters {
+  real<lower=0> lambda;          // per-capita intrinsic rate of increase
+  real<lower=0> alpha;           // competition coefficient
+}
+
+transformed parameters {
+  vector[N] fec;                 // turn data-generating process crank
+  for (i in 1:N) {               // to get latent fecundity
+    fec[i] = lambda / (1. + alpha * bkgd_dens[i]);
+  }
+}
+
+model {
+  offspring ~ poisson(fec);     // observe latent fecundity as whole offspring
+  lambda ~ normal(lambda_mean, lambda_sd);  // normal prior on lambda
+  alpha ~ normal(alpha_mean, alpha_sd);     // normal prior on alpha
+}
+
+```
+
+## Example data & fitting
+
+```{r example, message=FALSE, warning=FALSE}
+library(posterior)
+library(ggplot2)
+
+## set 'true' parameter values
+lambda <- 200
+alpha <- 1.25
+
+## generate synthetic data
+set.seed(58428)
+N <- 500L  # number of observed individuals
+bkgd_dens <- as.integer(round(runif(n = N, min = 0L, max = 100)))
+offspring <- rpois(n = N, lambda = (lambda / (1 + alpha * bkgd_dens)))
+
+dat <- list(N = N, bkgd_dens = bkgd_dens, offspring = offspring)
+
+## add priors
+## (note both parameters are truncated at zero by the Stan code)
+dat$lambda_mean <- 100
+dat$lambda_sd <- 50
+dat$alpha_mean <- 0
+dat$alpha_sd <- 1
+
+## compile the model from an external .stan file
+bh <- cmdstan_model("bh.stan")
+
+## fit the model (sample the posterior)
+ps <- bh$sample(data = dat, refresh = 500)
+pdat <- as_draws_df(ps$draws(variables = c("lambda", "alpha")))
+
+## plot posterior
+ggplot(data = NULL, aes(x = alpha, y = lambda))+
+  geom_hex(data = pdat)+
+  geom_point(aes(color = "true value"), shape = 3, stroke = 2, size = 4)+
+  scale_color_manual(name = "", values = "black")+
+  scale_fill_distiller(name = "posterior density", palette = "RdPu",
+                       direction = 1)+
+  theme_minimal(base_size = 20)
+```
+
+## Variations
+
+-   Change the observation process to allow for overdispersion (e.g., negative binomial)
+
+-   Set heavier-tailed prior on $\alpha$ (e.g., Student's t)
+
+-   Set more flexible prior on $\lambda$ (e.g., log-normal)
+
+## References
+
+::: {#refs}
+:::
