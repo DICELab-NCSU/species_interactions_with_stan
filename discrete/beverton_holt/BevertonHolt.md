@@ -62,6 +62,11 @@ f\_t &= \\frac{\\lambda}{1+\\alpha n\_{t}} \\\\
 \\end{aligned}
 $$
 
+(If this equation looks jumbled, you may need to download the source
+.Rmd or use a [browser
+add-on](https://chrome.google.com/webstore/detail/mathjax-plugin-for-github/ioemnmodlmafdkllaclgeombjnmnbima)
+to render it.)
+
 ## Stan code
 
 ``` r
@@ -146,14 +151,14 @@ ps <- bh$sample(data = dat, refresh = 500)
     ## Chain 1 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
     ## Chain 1 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
     ## Chain 1 Iteration: 2000 / 2000 [100%]  (Sampling) 
-    ## Chain 1 finished in 2.5 seconds.
+    ## Chain 1 finished in 1.0 seconds.
     ## Chain 2 Iteration:    1 / 2000 [  0%]  (Warmup) 
     ## Chain 2 Iteration:  500 / 2000 [ 25%]  (Warmup) 
     ## Chain 2 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
     ## Chain 2 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
     ## Chain 2 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
     ## Chain 2 Iteration: 2000 / 2000 [100%]  (Sampling) 
-    ## Chain 2 finished in 1.3 seconds.
+    ## Chain 2 finished in 1.0 seconds.
     ## Chain 3 Iteration:    1 / 2000 [  0%]  (Warmup) 
     ## Chain 3 Iteration:  500 / 2000 [ 25%]  (Warmup) 
     ## Chain 3 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
@@ -167,11 +172,11 @@ ps <- bh$sample(data = dat, refresh = 500)
     ## Chain 4 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
     ## Chain 4 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
     ## Chain 4 Iteration: 2000 / 2000 [100%]  (Sampling) 
-    ## Chain 4 finished in 1.0 seconds.
+    ## Chain 4 finished in 0.9 seconds.
     ## 
     ## All 4 chains finished successfully.
-    ## Mean chain execution time: 1.4 seconds.
-    ## Total execution time: 6.2 seconds.
+    ## Mean chain execution time: 1.0 seconds.
+    ## Total execution time: 4.3 seconds.
 
 ``` r
 pdat <- as_draws_df(ps$draws(variables = c("lambda", "alpha")))

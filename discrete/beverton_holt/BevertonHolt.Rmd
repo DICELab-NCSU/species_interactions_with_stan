@@ -3,7 +3,7 @@ title: "Competitive Beverton-Holt"
 subtitle: "(competition coefficient parameterization)"
 author: "W.K. Petry"
 date: "`r format(Sys.time(), '%Y-%b-%d')`"
-output: rmarkdown::github_document
+output: github_document
 references:
 - id: beverton1957
   title: On the Dynamics of Exploited Fish Populations
@@ -77,6 +77,8 @@ f_t &= \frac{\lambda}{1+\alpha n_{t}} \\
 \alpha &\sim \mathrm{Normal}\left(\mu_{\alpha},\sigma_{\alpha}\right).
 \end{aligned}
 $$
+
+(If this equation looks jumbled, you may need to download the source .Rmd or use a [browser add-on](https://chrome.google.com/webstore/detail/mathjax-plugin-for-github/ioemnmodlmafdkllaclgeombjnmnbima) to render it.)
 
 ## Stan code
 
