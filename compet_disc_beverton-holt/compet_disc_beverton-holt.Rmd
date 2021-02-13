@@ -137,8 +137,8 @@ alpha <- 1.25
 
 ## generate synthetic data
 set.seed(58428)
-N <- 500L  # number of observed individuals
-bkgd_dens <- as.integer(round(runif(n = N, min = 0L, max = 100)))
+N <- 100L  # number of observed individuals
+bkgd_dens <- as.integer(round(runif(n = N, min = 0L, max = 250L)))
 offspring <- rpois(n = N, lambda = (lambda / (1 + alpha * bkgd_dens)))
 
 dat <- list(N = N, bkgd_dens = bkgd_dens, offspring = offspring)
@@ -146,7 +146,7 @@ dat <- list(N = N, bkgd_dens = bkgd_dens, offspring = offspring)
 ## add priors
 ## (note both parameters are truncated at zero by the Stan code)
 dat$lambda_mean <- 200
-dat$lambda_sd <- 20
+dat$lambda_sd <- 30
 dat$alpha_mean <- 0.5
 dat$alpha_sd <- 0.75
 

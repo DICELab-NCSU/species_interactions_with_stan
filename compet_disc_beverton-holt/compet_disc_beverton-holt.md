@@ -1,7 +1,7 @@
 Competitive Beverton-Holt in discrete time
 ================
 W.K. Petry
-2021-Feb-12
+2021-Feb-13
 
 ## The model
 
@@ -123,8 +123,8 @@ alpha <- 1.25
 
 ## generate synthetic data
 set.seed(58428)
-N <- 500L  # number of observed individuals
-bkgd_dens <- as.integer(round(runif(n = N, min = 0L, max = 100)))
+N <- 100L  # number of observed individuals
+bkgd_dens <- as.integer(round(runif(n = N, min = 0L, max = 250L)))
 offspring <- rpois(n = N, lambda = (lambda / (1 + alpha * bkgd_dens)))
 
 dat <- list(N = N, bkgd_dens = bkgd_dens, offspring = offspring)
@@ -132,7 +132,7 @@ dat <- list(N = N, bkgd_dens = bkgd_dens, offspring = offspring)
 ## add priors
 ## (note both parameters are truncated at zero by the Stan code)
 dat$lambda_mean <- 200
-dat$lambda_sd <- 20
+dat$lambda_sd <- 30
 dat$alpha_mean <- 0.5
 dat$alpha_sd <- 0.75
 
@@ -150,29 +150,29 @@ ps <- bh$sample(data = dat, iter_warmup = 1000, iter_sampling = 2000, refresh = 
     ## Chain 1 Iteration: 1001 / 3000 [ 33%]  (Sampling) 
     ## Chain 1 Iteration: 2000 / 3000 [ 66%]  (Sampling) 
     ## Chain 1 Iteration: 3000 / 3000 [100%]  (Sampling) 
-    ## Chain 1 finished in 1.5 seconds.
+    ## Chain 1 finished in 0.3 seconds.
     ## Chain 2 Iteration:    1 / 3000 [  0%]  (Warmup) 
     ## Chain 2 Iteration: 1000 / 3000 [ 33%]  (Warmup) 
     ## Chain 2 Iteration: 1001 / 3000 [ 33%]  (Sampling) 
     ## Chain 2 Iteration: 2000 / 3000 [ 66%]  (Sampling) 
     ## Chain 2 Iteration: 3000 / 3000 [100%]  (Sampling) 
-    ## Chain 2 finished in 1.7 seconds.
+    ## Chain 2 finished in 0.3 seconds.
     ## Chain 3 Iteration:    1 / 3000 [  0%]  (Warmup) 
     ## Chain 3 Iteration: 1000 / 3000 [ 33%]  (Warmup) 
     ## Chain 3 Iteration: 1001 / 3000 [ 33%]  (Sampling) 
     ## Chain 3 Iteration: 2000 / 3000 [ 66%]  (Sampling) 
     ## Chain 3 Iteration: 3000 / 3000 [100%]  (Sampling) 
-    ## Chain 3 finished in 1.6 seconds.
+    ## Chain 3 finished in 0.3 seconds.
     ## Chain 4 Iteration:    1 / 3000 [  0%]  (Warmup) 
     ## Chain 4 Iteration: 1000 / 3000 [ 33%]  (Warmup) 
     ## Chain 4 Iteration: 1001 / 3000 [ 33%]  (Sampling) 
     ## Chain 4 Iteration: 2000 / 3000 [ 66%]  (Sampling) 
     ## Chain 4 Iteration: 3000 / 3000 [100%]  (Sampling) 
-    ## Chain 4 finished in 1.8 seconds.
+    ## Chain 4 finished in 0.3 seconds.
     ## 
     ## All 4 chains finished successfully.
-    ## Mean chain execution time: 1.6 seconds.
-    ## Total execution time: 7.1 seconds.
+    ## Mean chain execution time: 0.3 seconds.
+    ## Total execution time: 1.8 seconds.
 
 ``` r
 pdat <- as_draws_df(ps$draws(variables = c("lambda", "alpha")))
@@ -189,10 +189,10 @@ summarize_draws(ps$draws(variables = c("lambda", "alpha")))  # posterior summary
 ```
 
     ## # A tibble: 2 x 10
-    ##   variable   mean median     sd     mad     q5    q95  rhat ess_bulk ess_tail
-    ##   <chr>     <dbl>  <dbl>  <dbl>   <dbl>  <dbl>  <dbl> <dbl>    <dbl>    <dbl>
-    ## 1 lambda   215.   215.   9.97   10.0    199.   232.    1.00    1739.    1970.
-    ## 2 alpha      1.20   1.20 0.0664  0.0656   1.10   1.31  1.00    1775.    1789.
+    ##   variable   mean median     sd    mad      q5    q95  rhat ess_bulk ess_tail
+    ##   <chr>     <dbl>  <dbl>  <dbl>  <dbl>   <dbl>  <dbl> <dbl>    <dbl>    <dbl>
+    ## 1 lambda   199.   199.   28.1   27.8   153.    247.    1.00    1699.    1483.
+    ## 2 alpha      1.14   1.14  0.180  0.175   0.859   1.45  1.00    1658.    1567.
 
 ``` r
 ggplot(data = NULL, aes(x = alpha, y = lambda))+
