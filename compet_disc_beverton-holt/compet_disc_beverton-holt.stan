@@ -1,4 +1,4 @@
-// Beverton-Holt competition model
+// Competitive Beverton-Holt in discrete time
 // W.K. Petry
 
 // define the structure & types of data to which the model is fit

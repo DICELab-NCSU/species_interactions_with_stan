@@ -1,4 +1,4 @@
-Competitive Beverton-Holt
+Competitive Beverton-Holt in discrete time
 ================
 W.K. Petry
 2021-Feb-12
@@ -57,8 +57,8 @@ $$
 \\begin{aligned}
 n\_{\\mathrm{off}, t} &\\sim \\mathrm{Poisson}\\left(f\_{t}\\right) \\\\
 f\_t &= \\frac{\\lambda}{1+\\alpha n\_{t}} \\\\
-\\lambda &\\sim \\mathrm{Normal}\\left(\\mu\_{\\lambda},\\sigma\_{\\lambda}\\right) \\\\
-\\alpha &\\sim \\mathrm{Normal}\\left(\\mu\_{\\alpha},\\sigma\_{\\alpha}\\right).
+\\lambda &\\sim \\mathrm{LogNormal}\\left(\\mu\_{\\lambda},\\sigma\_{\\lambda}\\right) \\\\
+\\alpha &\\sim \\mathrm{HalfNormal}\\left(\\mu\_{\\alpha},\\sigma\_{\\alpha}\\right).
 \\end{aligned}
 $$
 
@@ -76,7 +76,7 @@ register_knitr_engine()
 ```
 
 ``` stan
-// Beverton-Holt competition model
+// Competitive Beverton-Holt in discrete time
 // W.K. Petry
 
 // define the structure & types of data to which the model is fit
@@ -106,8 +106,8 @@ transformed parameters {
 
 model {
   offspring ~ poisson(fec);     // observe latent fecundity as whole offspring
-  lambda ~ normal(lambda_mean, lambda_sd);  // normal prior on lambda
-  alpha ~ normal(alpha_mean, alpha_sd);     // normal prior on alpha
+  lambda ~ lognormal(lambda_mean, lambda_sd);  // lognormal prior on lambda
+  alpha ~ normal(alpha_mean, alpha_sd);        // (half)normal prior on alpha
 }
 ```
 
@@ -118,7 +118,7 @@ library(posterior)
 library(ggplot2)
 
 ## set 'true' parameter values
-lambda <- 200
+lambda <- 220
 alpha <- 1.25
 
 ## generate synthetic data
@@ -131,52 +131,48 @@ dat <- list(N = N, bkgd_dens = bkgd_dens, offspring = offspring)
 
 ## add priors
 ## (note both parameters are truncated at zero by the Stan code)
-dat$lambda_mean <- 100
-dat$lambda_sd <- 50
-dat$alpha_mean <- 0
-dat$alpha_sd <- 1
+dat$lambda_mean <- 200
+dat$lambda_sd <- 20
+dat$alpha_mean <- 0.5
+dat$alpha_sd <- 0.75
 
 ## compile the model from an external .stan file
-bh <- cmdstan_model("bh.stan")
+bh <- cmdstan_model("compet_disc_beverton-holt.stan")
 
 ## fit the model (sample the posterior)
-ps <- bh$sample(data = dat, refresh = 500)
+ps <- bh$sample(data = dat, iter_warmup = 1000, iter_sampling = 2000, refresh = 1000)
 ```
 
     ## Running MCMC with 4 sequential chains...
     ## 
-    ## Chain 1 Iteration:    1 / 2000 [  0%]  (Warmup) 
-    ## Chain 1 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-    ## Chain 1 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-    ## Chain 1 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-    ## Chain 1 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-    ## Chain 1 Iteration: 2000 / 2000 [100%]  (Sampling) 
-    ## Chain 1 finished in 1.0 seconds.
-    ## Chain 2 Iteration:    1 / 2000 [  0%]  (Warmup) 
-    ## Chain 2 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-    ## Chain 2 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-    ## Chain 2 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-    ## Chain 2 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-    ## Chain 2 Iteration: 2000 / 2000 [100%]  (Sampling) 
-    ## Chain 2 finished in 1.0 seconds.
-    ## Chain 3 Iteration:    1 / 2000 [  0%]  (Warmup) 
-    ## Chain 3 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-    ## Chain 3 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-    ## Chain 3 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-    ## Chain 3 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-    ## Chain 3 Iteration: 2000 / 2000 [100%]  (Sampling) 
-    ## Chain 3 finished in 0.9 seconds.
-    ## Chain 4 Iteration:    1 / 2000 [  0%]  (Warmup) 
-    ## Chain 4 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-    ## Chain 4 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-    ## Chain 4 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-    ## Chain 4 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-    ## Chain 4 Iteration: 2000 / 2000 [100%]  (Sampling) 
-    ## Chain 4 finished in 1.0 seconds.
+    ## Chain 1 Iteration:    1 / 3000 [  0%]  (Warmup) 
+    ## Chain 1 Iteration: 1000 / 3000 [ 33%]  (Warmup) 
+    ## Chain 1 Iteration: 1001 / 3000 [ 33%]  (Sampling) 
+    ## Chain 1 Iteration: 2000 / 3000 [ 66%]  (Sampling) 
+    ## Chain 1 Iteration: 3000 / 3000 [100%]  (Sampling) 
+    ## Chain 1 finished in 1.5 seconds.
+    ## Chain 2 Iteration:    1 / 3000 [  0%]  (Warmup) 
+    ## Chain 2 Iteration: 1000 / 3000 [ 33%]  (Warmup) 
+    ## Chain 2 Iteration: 1001 / 3000 [ 33%]  (Sampling) 
+    ## Chain 2 Iteration: 2000 / 3000 [ 66%]  (Sampling) 
+    ## Chain 2 Iteration: 3000 / 3000 [100%]  (Sampling) 
+    ## Chain 2 finished in 1.7 seconds.
+    ## Chain 3 Iteration:    1 / 3000 [  0%]  (Warmup) 
+    ## Chain 3 Iteration: 1000 / 3000 [ 33%]  (Warmup) 
+    ## Chain 3 Iteration: 1001 / 3000 [ 33%]  (Sampling) 
+    ## Chain 3 Iteration: 2000 / 3000 [ 66%]  (Sampling) 
+    ## Chain 3 Iteration: 3000 / 3000 [100%]  (Sampling) 
+    ## Chain 3 finished in 1.6 seconds.
+    ## Chain 4 Iteration:    1 / 3000 [  0%]  (Warmup) 
+    ## Chain 4 Iteration: 1000 / 3000 [ 33%]  (Warmup) 
+    ## Chain 4 Iteration: 1001 / 3000 [ 33%]  (Sampling) 
+    ## Chain 4 Iteration: 2000 / 3000 [ 66%]  (Sampling) 
+    ## Chain 4 Iteration: 3000 / 3000 [100%]  (Sampling) 
+    ## Chain 4 finished in 1.8 seconds.
     ## 
     ## All 4 chains finished successfully.
-    ## Mean chain execution time: 1.0 seconds.
-    ## Total execution time: 4.2 seconds.
+    ## Mean chain execution time: 1.6 seconds.
+    ## Total execution time: 7.1 seconds.
 
 ``` r
 pdat <- as_draws_df(ps$draws(variables = c("lambda", "alpha")))
@@ -186,29 +182,43 @@ c(lambda = lambda, alpha = alpha)  # true values
 ```
 
     ## lambda  alpha 
-    ## 200.00   1.25
+    ## 220.00   1.25
 
 ``` r
 summarize_draws(ps$draws(variables = c("lambda", "alpha")))  # posterior summary
 ```
 
     ## # A tibble: 2 x 10
-    ##   variable   mean median      sd     mad     q5    q95  rhat ess_bulk ess_tail
-    ##   <chr>     <dbl>  <dbl>   <dbl>   <dbl>  <dbl>  <dbl> <dbl>    <dbl>    <dbl>
-    ## 1 lambda   201.   201.   11.2    10.8    182.   220.    1.00     771.     692.
-    ## 2 alpha      1.24   1.24  0.0810  0.0782   1.11   1.38  1.00     771.     692.
+    ##   variable   mean median     sd     mad     q5    q95  rhat ess_bulk ess_tail
+    ##   <chr>     <dbl>  <dbl>  <dbl>   <dbl>  <dbl>  <dbl> <dbl>    <dbl>    <dbl>
+    ## 1 lambda   215.   215.   9.97   10.0    199.   232.    1.00    1739.    1970.
+    ## 2 alpha      1.20   1.20 0.0664  0.0656   1.10   1.31  1.00    1775.    1789.
 
 ``` r
 ggplot(data = NULL, aes(x = alpha, y = lambda))+
   geom_hex(data = pdat)+
   geom_point(aes(color = "true value"), shape = 3, stroke = 2, size = 4)+
   scale_color_manual(name = "", values = "black")+
-  scale_fill_distiller(name = "posterior density", palette = "RdPu",
+  scale_fill_distiller(name = "density", palette = "RdPu",
                        direction = 1)+
-  theme_minimal(base_size = 20)
+  theme_minimal(base_size = 20)+
+  ggtitle("Joint posterior distribution")
 ```
 
-![](BevertonHolt_files/figure-gfm/example-1.png)<!-- -->
+![](compet_disc_beverton-holt_files/figure-gfm/example-1.png)<!-- -->
+
+``` r
+## calculate the posterior equilibrium population size, n^*
+nstar <- (pdat$lambda - 1) / pdat$alpha
+ggplot(data = NULL, aes(x = nstar))+
+  geom_density(fill = "cornflowerblue", size = 0)+
+  geom_vline(xintercept = (lambda - 1) / alpha, size = 1)+  # true equilibrium
+  labs(title = "Posterior distribution of n*", x = "n*")+
+  theme_minimal(base_size = 20)+
+  theme(axis.text.y = element_blank())
+```
+
+![](compet_disc_beverton-holt_files/figure-gfm/example-2.png)<!-- -->
 
 ## Variations
 
@@ -216,8 +226,6 @@ ggplot(data = NULL, aes(x = alpha, y = lambda))+
     negative binomial)
 
 -   Set heavier-tailed prior on *α* (e.g., Student’s t)
-
--   Set more flexible prior on *λ* (e.g., log-normal)
 
 ## Session info
 
