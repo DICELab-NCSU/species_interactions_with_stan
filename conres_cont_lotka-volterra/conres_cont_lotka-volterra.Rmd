@@ -1,0 +1,261 @@
+---
+title: "Consumer-resource Lotka-Volterra in continuous time"
+subtitle: ""
+author: "W.K. Petry"
+date: "`r format(Sys.time(), '%Y-%b-%d')`"
+output: github_document
+references:
+- id: volterra1926
+  title: Variazioni e fluttuazioni del numero d’individui in specie animali conviventi
+  author:
+  - family: Volterra
+    given: Vito
+  container-title: Memorie Della R. Accademia Dei Lincei, 6th ser.
+  volume: 2
+  pages: 1-85
+  type: article-journal
+  issued:
+    year: 1926
+- id: lotka1925
+  title: Principles of physical biology
+  author:
+  - family: Lotka
+    given: A.J.
+  publisher: Waverly
+  place: Baltimore
+  type: book
+  issued:
+    year: 1925
+- id: carpenter2018
+  title: 'Predator-Prey Population Dynamics: the Lotka-Volterra model in Stan'
+  author:
+  - family: Carpenter
+    given: Bob
+  type: webpage
+  url: https://mc-stan.org/users/documentation/case-studies/lotka-volterra-predator-prey.html
+  issued:
+    year: 2018
+- id: mcelreath2020
+  title: Statistical rethinking
+  author:
+  - family: McElreath
+    given: Richard
+  publisher: CRC Press
+  type: book
+  edition: 2
+  issued:
+    year: 2020
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The model
+
++--------------------------+---------------------------------------------------------+
+| **Number of species**    | 2                                                       |
++--------------------------+---------------------------------------------------------+
+| **Time**                 | continuous                                              |
++--------------------------+---------------------------------------------------------+
+| **Interaction type(s)**  | consumer-resource                                       |
++--------------------------+---------------------------------------------------------+
+| **Differential equations** | $\frac{du}{dt}=\alpha u-\beta uv$                     |
+|                          |                                                         |
+|                          |  $\frac{dv}{dt}=-\gamma v+\delta uv$                    |
++--------------------------+---------------------------------------------------------+
+| **Parameter meaning**    | $u$: number of resource/prey                            |
+|                          |                                                         |
+|                          | $v$: number of consumers/prey                           |
+|                          |                                                         |
+|                          | $\alpha$: resource/prey growth rate                     |
+|                          |                                                         |
+|                          | $\beta$: resource loss/predation rate                   |
+|                          |                                                         |
+|                          | $\delta$: resource/prey conversion rate to consumer growth |
+|                          |                                                         |
+|                          | $\gamma$: consumer/predator mortality rate              |
++--------------------------+---------------------------------------------------------+
+| **Equilibrium**          | $v = \alpha/\beta$                                      |
+|                          |                                                         |
+|                          | $u = \gamma/\delta$                                     |
++--------------------------+---------------------------------------------------------+
+| **Original publications** | @lotka1925 and @volterra1926                           |
++--------------------------+---------------------------------------------------------+
+
+## Bayesian hierarchical model structure
+
+@carpenter2018 provides a thorough introduction to the model and its fit with Stan. Here we simply summarize the key features for completeness, deferring to the original for full detail.
+
+The model assumes that the latent state of the system is the vector $\mathbf{z}=(u,v)$, describing the 'true' abundances of the consumer and resource. The latent state is observed through simultaneous counts the organisms, $\mathbf{y}$, at a particular time.
+
+$$
+\begin{aligned}
+y_{n,k} &\sim \mathrm{LogNormal}\left(\mathrm{log}(z_{n,k}), \sigma_n\right) \\
+\mathbf{z}_n = \left[\begin{matrix}u(t_n)\\v(t_n)\end{matrix}\right] &= \left\{\begin{matrix}\alpha u-\beta uv \\ -\gamma v+\delta uv\end{matrix}\right\} \\
+y_{\mathrm{init},k} &\sim \mathrm{LogNormal}\left(\mathrm{log}(z_{\mathrm{init},k}), \sigma_n\right) \\
+z_{\mathrm{init, k}} &\sim \mathrm{LogNormal}\left(\mathrm{log}(\mu_{\mathrm{init}}), \sigma_{\mathrm{init}}\right) \\
+\alpha, \gamma &\sim \mathrm{Normal}\left(\mu_1, \sigma_1\right) \\
+\beta, \delta &\sim \mathrm{Normal}\left(\mu_2, \sigma_2\right) \\
+\sigma_n &\sim \mathrm{LogNormal}\left(\mu_{\mathrm{noise}}, \sigma_{\mathrm{noise}}\right)
+\end{aligned}
+$$
+
+(If this equation looks jumbled, you may need to download the source .Rmd or use a [browser add-on](https://chrome.google.com/webstore/detail/mathjax-plugin-for-github/ioemnmodlmafdkllaclgeombjnmnbima) to render it.)
+
+## Stan code
+
+```{r message=FALSE, warning=FALSE}
+## prepare Rmarkdown to input model
+library(cmdstanr)  # remotes::install_github("stan-dev/cmdstanr")
+register_knitr_engine()
+```
+
+```{stan, output.var="temp"}
+// Consumer-resource Lotka-Volterra in continuous time
+// © 2017–2018, Trustees of Columbia University in New York, licensed under BSD-3.
+// originally published: https://mc-stan.org/users/documentation/case-studies/lotka-volterra-predator-prey.html
+
+functions {
+  real[] dz_dt(real t,       // time
+               real[] z,     // system state {prey, predator}
+               real[] theta, // parameters
+               real[] x_r,   // unused data
+               int[] x_i) {
+    real u = z[1];
+    real v = z[2];
+
+    real alpha = theta[1];
+    real beta = theta[2];
+    real gamma = theta[3];
+    real delta = theta[4];
+
+    real du_dt = (alpha - beta * v) * u;
+    real dv_dt = (-gamma + delta * u) * v;
+
+    return { du_dt, dv_dt };
+  }
+}
+data {
+  int<lower = 0> N;          // number of measurement times
+  real ts[N];                // measurement times > 0
+  real y_init[2];            // initial measured populations
+  real<lower = 0> y[N, 2];   // measured populations
+}
+parameters {
+  real<lower = 0> theta[4];   // { alpha, beta, gamma, delta }
+  real<lower = 0> z_init[2];  // initial population
+  real<lower = 0> sigma[2];   // measurement errors
+}
+transformed parameters {
+  real z[N, 2]
+  = integrate_ode_rk45(dz_dt, z_init, 0, ts, theta,
+  rep_array(0.0, 0), rep_array(0, 0),
+  1e-5, 1e-3, 5e2);
+}
+model {
+  theta[{1, 3}] ~ normal(1, 0.5);
+  theta[{2, 4}] ~ normal(0.05, 0.05);
+  sigma ~ lognormal(-1, 1);
+  z_init ~ lognormal(log(10), 1);
+  for (k in 1:2) {
+    y_init[k] ~ lognormal(log(z_init[k]), sigma[k]);
+    y[ , k] ~ lognormal(log(z[, k]), sigma[k]);
+  }
+}
+generated quantities {
+  real y_init_rep[2];
+  real y_rep[N, 2];
+  for (k in 1:2) {
+    y_init_rep[k] = lognormal_rng(log(z_init[k]), sigma[k]);
+    for (n in 1:N)
+      y_rep[n, k] = lognormal_rng(log(z[n, k]), sigma[k]);
+  }
+}
+
+```
+
+## Example data & fitting
+
+We will fit the model to real-world data of lynx and hare pelts trapped by the Hudson's Bay Company between 1900-1920 (*note: these data have gone through a series of telephone game-like cycles of being extracted from figures. Caveat emptor.*) The code below has been modified from @carpenter2018.
+
+```{r example, message=FALSE, warning=FALSE}
+library(posterior)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(GGally)
+
+## read in data
+lynx_hare_df <- read.csv("https://raw.githubusercontent.com/stan-dev/example-models/master/knitr/lotka-volterra/hudson-bay-lynx-hare.csv",
+                         comment.char="#")
+
+## prepare data for Stan
+N <- length(lynx_hare_df$Year) - 1
+ts <- 1:N
+y_init <- c(lynx_hare_df$Hare[1], lynx_hare_df$Lynx[1])
+y <- as.matrix(lynx_hare_df[2:(N + 1), 2:3])
+y <- cbind(y[ , 2], y[ , 1]); # hare, lynx order
+dat <- list(N = N, ts = ts, y_init = y_init, y = y)
+
+## compile the model from an external .stan file
+mod <- cmdstan_model("conres_cont_lotka-volterra.stan")
+
+## fit the model (sample the posterior)
+ps <- mod$sample(data = dat, refresh = 500, seed = 23003)
+pdraws <- rename_variables(ps$draws(), alpha = "theta[1]", beta = "theta[2]", gamma = "theta[3]",
+                         delta = "theta[4]", `z[0,1]` = "z_init[1]", `z[0,2]` = "z_init[2]")
+pdat <- as_draws_df(pdraws)
+
+pts <- pdat %>%
+  as_tibble() %>%
+  select(.draw, starts_with("z[")) %>%
+  pivot_longer(cols = -.draw, names_to = c("time", "species"),
+               names_pattern = "z\\[([0-9]+),([1-2])\\]", values_to = "latent_N",
+               names_transform = list(time = as.integer)) %>%
+  mutate(time = 1900 + time,
+         species = case_when(
+           species == "1" ~ "hare",
+           species == "2" ~ "lynx"
+         ))
+
+## examine pairwise views of posterior distribution
+summarize_draws(pdraws)  # posterior summary
+
+## examine the posterior latent timeseries (+ observed pelt counts)
+ggplot(pts, aes(x = time, y = latent_N, group = paste0(.draw, species), color = species))+
+  geom_line(alpha = 0.05)+
+  geom_line(data = lynx_hare_df, aes(x = Year, y = Hare, color = "pelts hare"), inherit.aes = FALSE,
+            size = 1.75)+
+  geom_line(data = lynx_hare_df, aes(x = Year, y = Lynx, color = "pelts lynx"), inherit.aes = FALSE,
+            size = 1.75)+
+  labs(title = "Posterior time series", y = "N")+
+  scale_color_manual(values = c("#37b792", "#379cb7", "#257b62", "#25697b"),
+                     guide = guide_legend(override.aes = list(size = c(1, 1, 2, 2),
+                                                              alpha = c(0.5, 0.5, 1, 1))))+
+  theme_minimal(base_size = 20)
+
+## determine the period of the oscillations around the fixed point
+period <- (2 * pi) / sqrt(pdat$alpha * pdat$gamma)
+
+ggplot(data = NULL, aes(x = period))+
+  geom_density(fill = "cornflowerblue")+
+  labs(title = "Posterior of the oscillation period", x = "Period (years)")+
+  theme_minimal(base_size = 20)+
+  theme(axis.text.y = element_blank())
+```
+
+## Variations
+
+-   Add a lag variable, following @mcelreath2020 (p. 551)
+-   Add observation (trap) probability parameter to prevent the latent number from being less than the observed number of pelts, following @mcelreath2020 (p. 545-550)
+
+## Session info
+```{r}
+sessionInfo()
+```
+
+## References
+
+::: {#refs}
+:::

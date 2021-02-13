@@ -137,6 +137,8 @@ ggplot()+
   scale_fill_distiller(name = "posterior density", palette = "RdPu",
                        direction = 1)+
   theme_minimal(base_size = 20)
+
+## Perform a meaningful calculation on the posterior samples (e.g., equilibrium or coexistence condition)
 ```
 
 ## Variations
