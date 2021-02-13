@@ -15,7 +15,7 @@ Each model is contained in a sub-folder embedded in a GitHub-viewable Markdown d
 
 ### Consumer-Resource
 - [ ] Lotka-Volterra (discrete time)
-- [ ] Lotka-Volterra (continuous time)
+- [x] Lotka-Volterra (continuous time)
 - [ ] Rosenzweig-MacArthur
 - [ ] Beverton-Holt
 - [ ] Leslie-Gower
@@ -24,6 +24,13 @@ Each model is contained in a sub-folder embedded in a GitHub-viewable Markdown d
 - [ ] Yodzis-Innes
 - [ ] DeAngelis-Beddington
 - [ ] Wangersky-Cunningham
+
+## Similar resources
+[Stan ecology page](https://stanecology.github.io/): additional case studies, event materials, & collected peer-reviewed papers
+
+[Spatial models for plant neighborhood dynamics in Stan](https://mc-stan.org/users/documentation/case-studies/plantInteractions.html): a spatially-explicit competition model wherein competitors affect focals more when they are larger and closer
+
+[Ecology tag on Stan Discourse](https://discourse.mc-stan.org/tag/ecology)
 
 ## Contributing
 We welcome contributions to this example model base. Please use `model_template.Rmd` in the home directory to format your contribution. Please include the following in your pull request:
