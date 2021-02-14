@@ -14,7 +14,7 @@ Each folder has a GitHub-viewable Markdown document (`.md`), the RMarkdown docum
 - [ ] Lotka-Volterra (continuous time)
 - [x] Beverton-Holt
 - [ ] Leslie-Gower
-- [ ] Law-Wilkinson
+- [ ] Law-Watkinson
 - [ ] Ricker
 - [ ] Hassell
 
