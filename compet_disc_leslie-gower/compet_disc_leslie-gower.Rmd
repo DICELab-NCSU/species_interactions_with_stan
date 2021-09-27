@@ -1,0 +1,312 @@
+---
+title: "Competitive Leslie-Gower in discrete time"
+subtitle: ""
+author: "W.K. Petry"
+date: "`r format(Sys.time(), '%Y-%b-%d')`"
+output: github_document
+references:
+- id: leslie1958biometrika
+  title: The properties of a stochastic model for two competing species
+  author:
+  - family: Leslie
+    given: P.H.
+  - family: Gower
+    given: J.C.
+  container-title: Biometrika
+  volume: 45
+  pages: 316-330
+  type: article-journal
+  issued:
+    year: 1958
+- id: cushing2004jdiffeqappl
+  title: Some discrete competition models and the competitive exclusion principle
+  author:
+  - family: Cushing
+    given: J.M.
+  - family: Leverge
+    given: S.
+  - family: Chitnis
+    given: N.
+  - family: Henson
+    given: S.M.
+  container-title: J Diff Eq Appl
+  volume: 10
+  pages: 1139-1151
+  type: article-journal
+  issued:
+    year: 2004
+nocite: | 
+  @cushing2004jdiffeqappl
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The model
+
++--------------------------+---------------------------------------------------------+
+| **Number of species**    | >=1                                                     |
++--------------------------+---------------------------------------------------------+
+| **Time**                 | discrete                                                |
++--------------------------+---------------------------------------------------------+
+| **Interaction type(s)**  | competition                                             |
++--------------------------+---------------------------------------------------------+
+| **Difference equation**  | $n_{i,t+1} = \left(\lambda_i n_{i,t}\right)/\left(1+\sum_i\alpha_{ij}n_{j,t}\right)$ |
++--------------------------+---------------------------------------------------------+
+| **Parameter meaning**    | $n_{i,t}$: number of individuals of species $i$ at time $t$ |
+|                          |                                                         |
+|                          | $\lambda_i$: per-capita intrinsic rate of increase of species $i$ |
+|                          |                                                         |
+|                          | $\alpha_{ij}$: per-capita competitive effect of species $j$ on species $i$ |
++--------------------------+---------------------------------------------------------+
+| **Equilibrium**          | $n^*=0$                                                 |
++--------------------------+---------------------------------------------------------+
+| **Original publication** | @leslie1958biometrika                                   |
++--------------------------+---------------------------------------------------------+
+
+## Bayesian hierarchical model structure
+
+THe Leslie-Gower model is a multi-species generalization of the Beverton-Holt model.
+
+This framing of the model imagines that you have individual-level data on focal individuals. that includes the number and identity of neighboring competitors ($n_{j,t}$) and the number of offspring produced by the focal individual ($n^{\mathrm{off}}_{i, t}$). The observation of the latent individual fecundities ($f_t$) is a Poisson process. Domain expertise is used to set the priors on $\lambda$ and $\alpha$.
+
+$$
+\begin{aligned}
+e &= mc^2 \\
+c &\sim \mathrm{Normal}\left(299792458, \sigma\right) \\
+\end{aligned}
+$$
+
+(If this equation looks jumbled, you may need to download the source .Rmd or use a [browser add-on](https://chrome.google.com/webstore/detail/mathjax-plugin-for-github/ioemnmodlmafdkllaclgeombjnmnbima) to render it.)
+
+## Stan code
+
+```{r message=FALSE, warning=FALSE}
+## prepare Rmarkdown to input model
+library(cmdstanr)  # remotes::install_github("stan-dev/cmdstanr")
+register_knitr_engine()
+```
+
+```{stan, output.var="temp"}
+// Competitive n-species Leslie-Gower in discrete time
+// W.K. Petry
+
+// define the structure & types of data to which the model is fit
+data {
+  int<lower=0> N;                 // number of focal individuals (data rows)
+  int<lower=0> nsp;               // number of species
+  int<lower=0> focalsp[N];        // species index of the focal individual
+  int<lower=0> offspring[N];      // observed offspring production by focal individual
+  matrix[N,nsp] bkgd_dens;        // local densities by species (cols) around focal individuals (rows)
+  // accept priors from user
+  vector[nsp] lambda_mean;        // prior means for lambda
+  vector[nsp] lambda_sd;          // prior standard deviations for lambda
+  vector[nsp] es_mean;            // prior mean for competitive EFFECTS
+  vector[nsp] es_sd;              // prior standard deviation for competitive EFFECTS
+  vector[nsp] rs_mean;            // prior mean for competitive RESPONSES
+  vector[nsp] rs_sd;              // prior standard deviation for competitive RESPONSES
+}
+
+// define the parameters to be fit
+parameters {
+  vector<lower=0>[nsp] lambda;   // per-capita intrinsic rate of increase
+  vector<lower=0>[nsp] es;       // competitive EFFECTS of each species
+  vector<lower=0>[nsp] rs;       // competitive RESPONSES of each species
+}
+
+transformed parameters {
+  matrix[nsp,nsp] alpha = rs * es';  // interaction matrix
+  vector<lower=0>[N] fec;        // expected fecundities
+  for(i in 1:N) {
+    fec[i] = lambda[focalsp[i]] / (1. + bkgd_dens[i] * alpha[focalsp[i]]');
+  }
+}
+
+model {
+  offspring ~ poisson(fec);      // observe expected fecundity
+  lambda ~ normal(lambda_mean, lambda_sd);  // normal prior on lambda
+  es ~ normal(es_mean, es_sd);   // normal prior on competitive EFFECTS
+  rs ~ normal(rs_mean, rs_sd);   // normal prior on competitive RESPONSES
+}
+
+```
+
+## Example data & fitting
+
+```{r example, message=FALSE, warning=FALSE}
+library(posterior)
+library(tidyverse)
+
+# helper function to generate random integer combinations of competitors
+rand_vect <- function(N, M, sd = 1, pos.only = TRUE) {
+  vec <- rnorm(N, M/N, sd)
+  if (abs(sum(vec)) < 0.01) vec <- vec + 1
+  vec <- round(vec / sum(vec) * M)
+  deviation <- M - sum(vec)
+  for (. in seq_len(abs(deviation))) {
+    vec[i] <- vec[i <- sample(N, 1)] + sign(deviation)
+  }
+  if (pos.only) while (any(vec < 0)) {
+    negs <- vec < 0
+    pos  <- vec > 0
+    vec[negs][i] <- vec[negs][i <- sample(sum(negs), 1)] + 1
+    vec[pos][i]  <- vec[pos ][i <- sample(sum(pos ), 1)] - 1
+  }
+  as.integer(vec)
+}
+
+## Experimental design
+nsp <- 5L  # number of species
+bkgd_total <- c(0L, 5L, 50L, 100L, 200L)
+reps <- 10L
+
+## Set parameters
+set.seed(230342)
+lambdas <- rlnorm(n = nsp, meanlog = 7, sdlog = 2) %>%
+  `names<-`(letters[1:5])
+
+rs <- rnorm(n = nsp, mean = 1.5, sd = 0.8)  # species per-capita RESPONSES to competitors
+es <- rnorm(n = nsp, mean = 1.5, sd = 0.8)  # species per-capita EFFECTS on competitors
+alphas <- (rs %o% es) + rnorm(n = nsp^2, mean = 0, sd = 0.25)  # species interaction coefficients
+rownames(alphas) <- letters[1:nsp]
+colnames(alphas) <- letters[1:nsp]
+
+## Generate data
+dat_df <- crossing(sp_focal = letters[1:nsp], bkgd_total, rep = 1:10) %>%
+  mutate(bkgd_dens = map(.x = bkgd_total,
+                         .f = ~`colnames<-`(t(matrix(rand_vect(nsp, M = .x, sd = .x))),
+                                                      paste0("bkgd_", letters[1:nsp]))),
+         offspring = map2_int(.x = sp_focal, .y = bkgd_dens,
+                              .f = ~rpois(n = 1, as.numeric(lambdas[[.x]] / (1 + alphas[.x, ] %*% t(.y))))),
+         bkgd_dens = map(.x = bkgd_dens, .f = data.frame)) %>%  ## help unnest capture column names
+  unnest(bkgd_dens)
+
+# prepare data for Stan
+dat <- list(N = nrow(dat_df),
+            nsp = nsp,
+            focalsp = as.integer(factor(dat_df$sp_focal)),
+            offspring = dat_df$offspring,
+            bkgd_dens = as.matrix(select(dat_df, paste0("bkgd_", letters[1:nsp]))),
+            # add priors
+            lambda_mean = rep(1000, nsp),
+            lambda_sd = rep(200, nsp),
+            es_mean = rep(1.5, nsp),
+            es_sd = rep(0.8, nsp),
+            rs_mean = rep(1.5, nsp),
+            rs_sd = rep(0.8, nsp),
+            alphasd_scale = 0.25)
+
+## compile the model from an external .stan file
+mod <- cmdstan_model("compet_disc_leslie-gower/compet_disc_leslie-gower.stan")
+
+## fit the model (sample the posterior)
+ps <- mod$sample(data = dat, refresh = 500, parallel_chains = 2L)
+pdat <- as_draws_df(ps$draws(variables = c("alpha", "lambda"))) %>%
+  as_tibble()
+
+palphamat <- as_draws_df(ps$draws(variables = c("alpha"))) %>%
+  as_tibble() %>%
+  pivot_longer(starts_with("alpha"), names_to = c("focal", "bkgd"),
+               names_pattern = "^alpha\\[([0-9]+),([0-9]+)\\]", values_to = "alpha",
+               names_transform = list(focal = as.integer, bkgd = as.integer)) %>%
+  mutate(focal = letters[focal],
+         bkgd = letters[bkgd])
+
+plambda <- as_draws_df(ps$draws(variables = c("lambda"))) %>%
+  as_tibble() %>%
+  pivot_longer(starts_with("lambda"), names_to = "species", names_pattern = "^lambda\\[([0-9]+)\\]",
+               values_to = "lambda", names_transform = list(species = as.integer)) %>%
+  mutate(species = letters[species])
+
+## examine posterior distribution vs. true values
+# c(lambda = lambda, alpha = alpha)  # true values
+summarize_draws(ps$draws(variables = c("lambda", "alpha")))  # posterior summary
+# 
+ggplot(palphamat, aes(x = alpha))+
+  geom_density(fill = "cornflowerblue")+
+  geom_vline(data = rownames_to_column(as.data.frame(alphas), "focal") %>%
+               pivot_longer(-focal, names_to = "bkgd", values_to = "alpha"),
+             aes(xintercept = alpha))+
+  facet_grid(focal~bkgd, scales = "free_y")+
+  theme_minimal(base_size = 20)
+
+ggplot(plambda, aes(x = lambda))+
+  geom_density(fill = "cornflowerblue")+
+  geom_vline(data = rownames_to_column(as.data.frame(lambdas), "species"),
+             aes(xintercept = lambdas))+
+  facet_wrap(~species, scale = "free")+
+  theme_minimal(base_size = 20)
+
+## Determine pairwise probabilities of competitive outcomes
+nstars <- (lambdas - 1) / diag(alphas)
+
+pnstar <- plambda %>%
+  full_join(palphamat %>% nest(alphas = c("bkgd", "alpha")),
+            by = c(".chain", ".iteration", ".draw", "species" = "focal")) %>%
+  mutate(nstar = pmap_dbl(.l = list(..1 = species, ..2 = lambda, ..3 = alphas),
+                          .f = ~((..2 - 1) / ..3[..3$bkgd == ..1, "alpha"][[1]]))) %>%
+  select(-alphas, -lambda)
+
+pigr <- plambda %>%
+  full_join(palphamat %>% nest(alphas = c("bkgd", "alpha")),
+            by = c(".chain", ".iteration", ".draw", "species" = "focal")) %>%
+  unnest(alphas) %>%
+  left_join(pnstar, by = c(".chain", ".iteration", ".draw", "bkgd" = "species")) %>%
+  mutate(igr = lambda / (1 + alpha * nstar),
+         log_igr = log(igr))
+
+ggplot(pigr %>% filter(species != bkgd), aes(x = log_igr))+
+  geom_vline(xintercept = 0, color = "darkgrey")+
+  geom_density(fill = "cornflowerblue")+
+  facet_grid(species ~ bkgd, scales = "free_y")+
+  labs(title = "Posterior distribution of IGR")+
+  theme_minimal(base_size = 20)+
+  theme(axis.text.y = element_blank())
+
+pc1 <- plambda %>%
+  full_join(palphamat %>% nest(alphas = c("bkgd", "alpha")),
+            by = c(".chain", ".iteration", ".draw", "species" = "focal")) %>%
+  unnest(alphas) %>%
+  rename(aij = alpha, lambdai = lambda) %>%
+  mutate(ij = paste(species, bkgd, sep = "_"),
+         ji = paste(bkgd, species, sep = "_")) %>%
+  select(-species, -bkgd)
+
+pchesson <- pc1 %>%
+  left_join(pc1 %>%
+              select(-ij) %>%
+              rename(lambdaj = lambdai, aji = aij, ij = ji)) %>%
+  separate(col = "ij", into = c("focal", "bkgd"), sep = "_") %>%
+  nest(data = c(lambdai, aij, aji, bkgd, ji, lambdaj)) %>%
+  mutate(aii = map2_dbl(.x = data, .y = focal, .f = ~.x[.x$bkgd == .y, "aij"][[1]])) %>%
+  unnest(data) %>%
+  nest(data = c(lambdai, aii, aij, aji, focal, ji, lambdaj)) %>%
+  mutate(ajj = map2_dbl(.x = data, .y = bkgd, .f = ~.x[.x$focal == .y, "aij"][[1]])) %>%
+  unnest(data) %>%
+  filter(focal != bkgd) %>%
+  mutate(fitdiff = ((lambdaj - 1) / (lambdai - 1)) * sqrt((aij * aii) / (ajj * aji)),
+         nichediff = 1 - sqrt((aij * aji) / (ajj * aii)))
+
+ggplot(pchesson, aes(x = nichediff, y = fitdiff))+
+  geom_point()+
+  scale_y_continuous(trans = "pseudo_log")+
+  facet_grid(focal ~ bkgd)+
+  theme_minimal(base_size = 20)
+
+
+```
+
+## Variations
+
+-   Change the observation process to allow for over-dispersion
+
+## Session info
+```{r}
+sessionInfo()
+```
+
+## References
+
+::: {#refs}
+:::

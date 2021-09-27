@@ -1,7 +1,7 @@
 Competitive Beverton-Holt in discrete time
 ================
 W.K. Petry
-2021-Feb-13
+2021-Sep-27
 
 ## The model
 
@@ -25,7 +25,7 @@ W.K. Petry
 </tr>
 <tr class="even">
 <td><strong>Difference equation</strong></td>
-<td><span class="math inline"><em>n</em><sub><em>t</em> + 1</sub> = <em>n</em><sub><em>t</em></sub><em>λ</em>/(1 + <em>α</em><em>n</em><sub><em>t</em></sub>)</span></td>
+<td><span class="math inline"><em>n</em><sub><em>t</em> + 1</sub> = <em>n</em><sub><em>t</em></sub><em>λ</em>/(1+<em>α</em><em>n</em><sub><em>t</em></sub>)</span></td>
 </tr>
 <tr class="odd">
 <td><strong>Parameter meaning</strong></td>
@@ -35,7 +35,7 @@ W.K. Petry
 </tr>
 <tr class="even">
 <td><strong>Equilibrium</strong></td>
-<td><span class="math inline"><em>n</em><sup>*</sup> = (<em>λ</em> − 1)/<em>α</em></span></td>
+<td><span class="math inline"><em>n</em><sup>*</sup> = (<em>λ</em>−1)/<em>α</em></span></td>
 </tr>
 <tr class="odd">
 <td><strong>Original publication</strong></td>
@@ -49,14 +49,14 @@ W.K. Petry
 This framing of the model imagines that you have individual-level data
 on focal individuals. that includes the number of neighboring
 competitors (*n*<sub>*t*</sub>) and the number of offspring produced
-(*n*<sub>*o**f**f*, *t*</sub>). The observation of the latent individual
+(*n*<sub>off, *t*</sub>). The observation of the latent individual
 fecundities (*f*<sub>*t*</sub>) is a Poisson process. Domain expertise
 is used to set the priors on *λ* and *α*.
 
 $$
 \\begin{aligned}
 n\_{\\mathrm{off}, t} &\\sim \\mathrm{Poisson}\\left(f\_{t}\\right) \\\\
-f\_t &= \\frac{\\lambda}{1+\\alpha n\_{t}} \\\\
+f_t &= \\frac{\\lambda}{1+\\alpha n\_{t}} \\\\
 \\lambda &\\sim \\mathrm{LogNormal}\\left(\\mu\_{\\lambda},\\sigma\_{\\lambda}\\right) \\\\
 \\alpha &\\sim \\mathrm{HalfNormal}\\left(\\mu\_{\\alpha},\\sigma\_{\\alpha}\\right).
 \\end{aligned}
@@ -150,7 +150,7 @@ ps <- bh$sample(data = dat, iter_warmup = 1000, iter_sampling = 2000, refresh = 
     ## Chain 1 Iteration: 1001 / 3000 [ 33%]  (Sampling) 
     ## Chain 1 Iteration: 2000 / 3000 [ 66%]  (Sampling) 
     ## Chain 1 Iteration: 3000 / 3000 [100%]  (Sampling) 
-    ## Chain 1 finished in 0.3 seconds.
+    ## Chain 1 finished in 0.5 seconds.
     ## Chain 2 Iteration:    1 / 3000 [  0%]  (Warmup) 
     ## Chain 2 Iteration: 1000 / 3000 [ 33%]  (Warmup) 
     ## Chain 2 Iteration: 1001 / 3000 [ 33%]  (Sampling) 
@@ -162,17 +162,17 @@ ps <- bh$sample(data = dat, iter_warmup = 1000, iter_sampling = 2000, refresh = 
     ## Chain 3 Iteration: 1001 / 3000 [ 33%]  (Sampling) 
     ## Chain 3 Iteration: 2000 / 3000 [ 66%]  (Sampling) 
     ## Chain 3 Iteration: 3000 / 3000 [100%]  (Sampling) 
-    ## Chain 3 finished in 0.3 seconds.
+    ## Chain 3 finished in 0.4 seconds.
     ## Chain 4 Iteration:    1 / 3000 [  0%]  (Warmup) 
     ## Chain 4 Iteration: 1000 / 3000 [ 33%]  (Warmup) 
     ## Chain 4 Iteration: 1001 / 3000 [ 33%]  (Sampling) 
     ## Chain 4 Iteration: 2000 / 3000 [ 66%]  (Sampling) 
     ## Chain 4 Iteration: 3000 / 3000 [100%]  (Sampling) 
-    ## Chain 4 finished in 0.3 seconds.
+    ## Chain 4 finished in 0.4 seconds.
     ## 
     ## All 4 chains finished successfully.
-    ## Mean chain execution time: 0.3 seconds.
-    ## Total execution time: 1.8 seconds.
+    ## Mean chain execution time: 0.4 seconds.
+    ## Total execution time: 2.1 seconds.
 
 ``` r
 pdat <- as_draws_df(ps$draws(variables = c("lambda", "alpha")))
@@ -188,11 +188,11 @@ c(lambda = lambda, alpha = alpha)  # true values
 summarize_draws(ps$draws(variables = c("lambda", "alpha")))  # posterior summary
 ```
 
-    ## # A tibble: 2 x 10
+    ## # A tibble: 2 × 10
     ##   variable   mean median     sd    mad      q5    q95  rhat ess_bulk ess_tail
     ##   <chr>     <dbl>  <dbl>  <dbl>  <dbl>   <dbl>  <dbl> <dbl>    <dbl>    <dbl>
-    ## 1 lambda   199.   199.   28.1   27.8   153.    247.    1.00    1699.    1483.
-    ## 2 alpha      1.14   1.14  0.180  0.175   0.859   1.45  1.00    1658.    1567.
+    ## 1 lambda   200.   200.   27.5   27.5   154.    245.    1.00    1867.    1850.
+    ## 2 alpha      1.15   1.14  0.176  0.178   0.859   1.44  1.00    1835.    2018.
 
 ``` r
 ggplot(data = NULL, aes(x = alpha, y = lambda))+
@@ -233,13 +233,13 @@ ggplot(data = NULL, aes(x = nstar))+
 sessionInfo()
 ```
 
-    ## R version 4.0.3 (2020-10-10)
+    ## R version 4.1.0 (2021-05-18)
     ## Platform: x86_64-apple-darwin17.0 (64-bit)
     ## Running under: macOS Mojave 10.14.6
     ## 
     ## Matrix products: default
-    ## BLAS:   /Library/Frameworks/R.framework/Versions/4.0/Resources/lib/libRblas.dylib
-    ## LAPACK: /Library/Frameworks/R.framework/Versions/4.0/Resources/lib/libRlapack.dylib
+    ## BLAS:   /Library/Frameworks/R.framework/Versions/4.1/Resources/lib/libRblas.dylib
+    ## LAPACK: /Library/Frameworks/R.framework/Versions/4.1/Resources/lib/libRlapack.dylib
     ## 
     ## locale:
     ## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
@@ -248,22 +248,28 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] ggplot2_3.3.3       posterior_0.1.3     cmdstanr_0.3.0.9000
+    ## [1] ggplot2_3.3.5       posterior_1.1.0     cmdstanr_0.4.0.9000
     ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] highr_0.8          RColorBrewer_1.1-2 compiler_4.0.3     pillar_1.4.7      
-    ##  [5] tools_4.0.3        digest_0.6.27      lattice_0.20-41    jsonlite_1.7.2    
-    ##  [9] evaluate_0.14      lifecycle_0.2.0    tibble_3.0.6       gtable_0.3.0      
-    ## [13] checkmate_2.0.0    pkgconfig_2.0.3    rlang_0.4.10       cli_2.3.0         
-    ## [17] DBI_1.1.1          yaml_2.2.1         hexbin_1.28.2      xfun_0.21         
-    ## [21] withr_2.4.1        stringr_1.4.0      dplyr_1.0.4        knitr_1.31        
-    ## [25] generics_0.1.0     vctrs_0.3.6        grid_4.0.3         tidyselect_1.1.0  
-    ## [29] data.table_1.13.6  glue_1.4.2         R6_2.5.0           processx_3.4.5    
-    ## [33] fansi_0.4.2        rmarkdown_2.6      farver_2.0.3       purrr_0.3.4       
-    ## [37] magrittr_2.0.1     backports_1.2.1    scales_1.1.1       ps_1.5.0          
-    ## [41] htmltools_0.5.1.1  ellipsis_0.3.1     assertthat_0.2.1   abind_1.4-5       
-    ## [45] colorspace_2.0-0   labeling_0.4.2     utf8_1.1.4         stringi_1.5.3     
-    ## [49] munsell_0.5.0      crayon_1.4.1
+    ##  [1] tidyselect_1.1.1     xfun_0.26            purrr_0.3.4         
+    ##  [4] lattice_0.20-45      colorspace_2.0-2     vctrs_0.3.8         
+    ##  [7] generics_0.1.0       htmltools_0.5.2      yaml_2.2.1          
+    ## [10] utf8_1.2.2           rlang_0.4.11         hexbin_1.28.2       
+    ## [13] pillar_1.6.3         glue_1.4.2           withr_2.4.2         
+    ## [16] DBI_1.1.1            RColorBrewer_1.1-2   distributional_0.2.2
+    ## [19] matrixStats_0.61.0   lifecycle_1.0.1      stringr_1.4.0       
+    ## [22] munsell_0.5.0        gtable_0.3.0         evaluate_0.14       
+    ## [25] labeling_0.4.2       knitr_1.34           fastmap_1.1.0       
+    ## [28] ps_1.6.0             fansi_0.5.0          highr_0.9           
+    ## [31] scales_1.1.1         backports_1.2.1      checkmate_2.0.0     
+    ## [34] jsonlite_1.7.2       abind_1.4-5          farver_2.1.0        
+    ## [37] tensorA_0.36.2       digest_0.6.28        stringi_1.7.4       
+    ## [40] processx_3.5.2       dplyr_1.0.7          grid_4.1.0          
+    ## [43] cli_3.0.1            tools_4.1.0          magrittr_2.0.1      
+    ## [46] tibble_3.1.4         crayon_1.4.1         pkgconfig_2.0.3     
+    ## [49] ellipsis_0.3.2       data.table_1.14.0    assertthat_0.2.1    
+    ## [52] rmarkdown_2.11       rstudioapi_0.13      R6_2.5.1            
+    ## [55] compiler_4.1.0
 
 ## References
 
