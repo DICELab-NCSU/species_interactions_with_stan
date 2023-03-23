@@ -13,7 +13,7 @@ Each folder has a GitHub-viewable Markdown document (`.md`), the RMarkdown docum
 - [ ] Lotka-Volterra (discrete time)
 - [ ] Lotka-Volterra (continuous time)
 - [x] Beverton-Holt
-- [ ] Leslie-Gower
+- [x] Leslie-Gower
 - [ ] Law-Watkinson
 - [ ] Ricker
 - [ ] Hassell
